@@ -7,6 +7,10 @@ const CorrespondencesRouter = require("./routers/CorrespondencesRouter");
 require("./db/mongoose");
 
 const app = express();
+const port = process.env.PORT || 3000;
+
+app.set("port", port);
+
 app.use(express.json());
 app.use(cors());
 app.all("*", function(req, res, next) {
@@ -19,7 +23,6 @@ app.use(UsersRouter);
 app.use(EventsRouter);
 app.use(CorrespondencesRouter);
 
-const port = process.env.PORT || 3000;
 // add correspondences
 
 app.listen(port, () => {
