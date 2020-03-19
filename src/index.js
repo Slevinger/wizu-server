@@ -19,6 +19,10 @@ app.all("*", function(req, res, next) {
   res.header("Access-Control-Allow-Headers", "Content-Type");
   next();
 });
+
+app.get("/", (req, res) => {
+  res.send("Wizu");
+});
 app.use(UsersRouter);
 app.use(EventsRouter);
 app.use(CorrespondencesRouter);
