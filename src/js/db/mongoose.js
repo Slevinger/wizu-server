@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const MONGO_URL = `mongodb://localhost:27017/`;
-const PROD_MONGO_URL = `mongodb://slevinger:Lev1nger@ds143039.mlab.com:43039/heroku_vcj52z56`;
+const PROD_MONGO_URL = `mongodb://slevinger:lev1nger@ds143039.mlab.com:43039/heroku_vcj52z56`;
 
 mongoose.connect(PROD_MONGO_URL, {
   useUnifiedTopology: true,
   useNewUrlParser: true,
   useCreateIndex: true,
-  dbName: "wizu-db"
+  dbName: "heroku_vcj52z56"
 });
 
 console.log(mongoose);

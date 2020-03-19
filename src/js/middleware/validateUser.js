@@ -15,7 +15,7 @@ const validateUser = async function(req, res, next) {
       { password: 0 }
     );
     if (!user) {
-      // TODO: throw 404 user not found
+      return res.status(401).send({ error: "user not found" });
       throw new Error();
     }
     req.token = token;
