@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "build": "webpack --mode production",
-    "start": "node src/index.js"
+    "start": "node src/app.js"
   },
   "author": "Shir Levinger",
   "license": "ISC",
