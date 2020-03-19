@@ -124,7 +124,7 @@ router.post("/events", validateUser, async (req, res) => {
   const _id = new ObjectId();
   try {
     const correspondence = new Correspondence({
-      event_id: t_id,
+      event_id: _id,
       status: "replied",
       answer: "confirm",
       email,
