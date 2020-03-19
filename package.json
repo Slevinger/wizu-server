@@ -4,9 +4,9 @@
   "description": "wizu-server project",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
+    "dev": "nodemon src/js/index.js",
     "build": "webpack --mode production",
-    "start": "node src/app.js"
+    "start": "node src/js/index.js"
   },
   "author": "Shir Levinger",
   "license": "ISC",
