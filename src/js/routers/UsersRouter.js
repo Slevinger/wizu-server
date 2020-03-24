@@ -5,7 +5,10 @@ const Correspondence = require("../models/CorrespondenceModel");
 const { format } = require("util");
 const ObjectId = require("mongodb").ObjectId;
 const validateUser = require("../middleware/validateUser");
-const collectCorrespondences = require("../middleware/collectCorrespondences");
+const {
+  collectCorrespondences,
+  getCorrespondencesByUser
+} = require("../middleware/collectCorrespondences");
 const { setProfileImage, bucket } = require("../utils/fireBase");
 const passport = require("passport");
 const cors = require("cors");
@@ -16,14 +19,24 @@ const router = new express.Router();
 
 // get users
 router.get("/users/me", validateUser, collectCorrespondences, (req, res) => {
-  const data = { ...req.user, correspondences: req.correspondences };
+  const data = { ...req.user.toJSON(), correspondences: req.correspondences };
   res.send({ data: data });
 });
+router.get("/users/:user_id", validateUser, async (req, res) => {
+  const user = await User.findById(req.params.user_id, {
+    email: 1,
+    username: 1,
+    phone: 1,
+    profileImage: 1,
+    friends: 1
+  });
+  res.send({ data: user.toJSON() });
+});
 
-router.post("/users/invite/:email", validateUser, async (req, res) => {
-  const { email } = req.params;
+router.post("/users/invite/:phone", validateUser, async (req, res) => {
+  const { phone } = req.params;
   const triggerUser = req.user;
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ phone });
   if (!user) {
     res.status(404).send({
       error: `user ${username} or srcUser ${srcUser}, does not exists`
@@ -34,8 +47,8 @@ router.post("/users/invite/:email", validateUser, async (req, res) => {
     const correspondence = new Correspondence({
       status: "sent",
       correspondence_type: "FRIEND_REQ",
-      email,
-      trigger_email: triggerUser.email
+      user_id: user._id,
+      trigger_user_id: triggerUser._id
     });
 
     user.correspondences.push(correspondence._id);
@@ -105,28 +118,7 @@ router.get(
     }
 
     console.log(events);
-    // .reduce(
-    //   async (acc, correspondenceId) => {
-    //     const correspondence = correspondences[correspondenceId];
-    //     const event = await Event.findById(correspondence.event_id);
-    //     return {
-    //       ...acc,
-    //       [correspondence.answer]: [...acc[correspondence.answer], event]
-    //     };
-    //   },
-    //   {}
-    // );
-    // const eventIds = (await Correspondence.find({
-    //   _id: { $in: [...user.correspondences.map(c => ObjectId(c))] }
-    // }))
-    //   .filter(correspondence => correspondence.correspondence_type === "RSVP")
-    //   .map(({ event_id }) => ObjectId(event_id));
 
-    // const events = await Event.find({
-    //   _id: {
-    //     $in: eventIds
-    //   }
-    // });
     res.send({ data: events });
   }
 );
@@ -166,7 +158,7 @@ router.post("/users", async (req, res) => {
     user
       .save()
       .then(() => {
-        res.status(201).send({ user, token });
+        res.status(201).send({ data: { user, token } });
       })
       .catch(error => {
         res.status(400).send(error);
@@ -180,7 +172,11 @@ router.post("/users/login", async (req, res) => {
   try {
     const user = await User.findByCredentials(req.body);
     const token = await user.generateAuthToken(user);
-    res.send({ data: { user, token } });
+    const ret = user.toJSON();
+    const correspondences = await getCorrespondencesByUser(user);
+    console.log(correspondences);
+    ret.correspondences = Object.values(correspondences);
+    res.send({ data: { user: ret, token } });
   } catch ({ message }) {
     res.status(401).send({ message });
   }

@@ -6,37 +6,77 @@ const CorrespondenceSchema = require("./schemas/Correspondence");
 
 CorrespondenceSchema.pre("save", async function(next) {
   const correspondence = this;
-  const event = await Event.findById(correspondence.event_id);
-  const user = await User.findOne({ email: correspondence.email });
-
+  const {
+    correspondence_type: type,
+    answer,
+    user_id,
+    trigger_user_id,
+    event_id
+  } = correspondence;
   if (correspondence.isModified("answer")) {
-    switch (correspondence.answer) {
-      case "confirm":
-        user.events = user.events.concat(event._id);
-        event.users = event.users.concat(user._id);
-        await Promise.all([user.save(), event.save()]);
+    const me = await User.findOne({ _id: user_id });
+    const triggerUser = await User.findOne({ _id: trigger_user_id });
+    try {
+      switch (type) {
+        case "FRIEND_REQ":
+          console.log("friend Req");
+          switch (answer) {
+            case "confirm":
+              me.friends = me.friends.concat(triggerUser._id);
+              triggerUser.friends = triggerUser.friends.concat(me._id);
+              break;
+            default:
+              triggerUser.friends = triggerUser.friends.filter(
+                _id => _id.toString() !== me._id.toString()
+              );
 
-        console.log("confirm");
-        break;
-      default:
-        const eventIndex = user.events.findIndex(
-          _id => _id.toString() === event._id.toString()
-        );
-        const userIndex = event.users.findIndex(
-          _id => _id.toString() === user._id.toString()
-        );
-        user.events.splice(eventIndex, 1);
-        event.users.splice(userIndex, 1);
+              me.friends = me.friends.filter(
+                _id => _id.toString() !== triggerUser._id.toString()
+              );
+              break;
+          }
+          await Promise.all([me.save(), triggerUser.save()]);
 
-        await Promise.all([user.save(), event.save()]);
+          break;
+        case "RSVP":
+          const event = await Event.findById(event_id);
+          switch (answer) {
+            case "confirm":
+              me.events = me.events.concat(event._id);
+              event.users = event.users.concat(user._id);
+              await Promise.all([me.save(), event.save()]);
 
-        console.log(correspondence.answer);
-        break;
+              console.log("confirm");
+              break;
+            default:
+              const eventIndex = me.events.findIndex(
+                _id => _id.toString() === event._id.toString()
+              );
+              const userIndex = event.users.findIndex(
+                _id => _id.toString() === me._id.toString()
+              );
+              me.events.splice(eventIndex, 1);
+              event.users.splice(userIndex, 1);
+
+              await Promise.all([me.save(), event.save()]);
+
+              console.log(correspondence.answer);
+              break;
+          }
+        default:
+          break;
+      }
+    } catch (err) {
+      console.log(err);
+    } finally {
+      correspondence.timeStamp = Date.now();
+      next();
     }
-    correspondence.timeStamp = Date.now();
+  } else {
+    next();
   }
-  next();
 });
+
 CorrespondenceSchema.post("remove", correspondence => {
   console.log(correspondence);
 });

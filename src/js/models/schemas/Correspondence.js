@@ -19,26 +19,25 @@ const CorrespondenceSchema = new Schema({
     type: String,
     default: "RSVP"
   }, // RSVP | FRIEND_REQ
-  email: {
+  user_id: {
     type: String,
     required: true,
     trim: true,
-    validate(email) {
-      User.findOne({ email }).then(user => {
+    validate(_id) {
+      User.findById(_id).then(user => {
         if (user === null) {
-          throw new Error("No such User in the DB");
+          throw new Error(`No such user_id ${_id} in the DB`);
         }
       });
     }
   },
-  trigger_email: {
-    type: String,
+  trigger_user_id: {
+    type: Schema.ObjectId,
     required: true,
-    trim: true,
-    validate(email) {
-      User.findOne({ email }).then(user => {
+    validate(_id) {
+      User.findById(_id).then(user => {
         if (user === null) {
-          throw new Error("No such User in the DB");
+          throw new Error(`No such trigger_user_id ${_id} in the DB`);
         }
       });
     }

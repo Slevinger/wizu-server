@@ -19,7 +19,7 @@ const validateUser = async function(req, res, next) {
       throw new Error();
     }
     req.token = token;
-    req.user = user.toJSON();
+    req.user = user;
     next();
   } catch (err) {
     res.status(401).send({ error: "please authenticate" });

@@ -6,7 +6,7 @@ const authenticateEvent = async function(req, res, next) {
     const event_id = req.params.event_id;
     const user = req.user;
 
-    const event = await Event.findOne({ _id: event_id, admins: user.email });
+    const event = await Event.findOne({ _id: event_id, admins: user._id });
     if (!event) {
       // TODO: throw 404 user not found
       throw new Error();

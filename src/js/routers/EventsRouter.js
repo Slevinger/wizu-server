@@ -5,7 +5,9 @@ const validateUser = require("../middleware/validateUser");
 const eventContextExtractor = require("../middleware/contextExtractors/eventContextExtractor");
 const getCorrespondencesFromEvent = require("../middleware/getCorrespondencesFromEvent");
 const authenticateEvent = require("../middleware/authenticateEvent");
-const collectCorrespondences = require("../middleware/collectCorrespondences");
+const {
+  collectCorrespondences
+} = require("../middleware/collectCorrespondences");
 const Correspondence = require("../models/CorrespondenceModel");
 const router = new express.Router();
 const { setEventImage } = require("../utils/fireBase");
@@ -50,26 +52,6 @@ router.patch("/events/:event_id", validateUser, async (req, res) => {
   await Event.findByIdAndUpdate(event._id, event);
 });
 
-router.patch(
-  "/events/:event_id/:answer",
-  validateUser,
-  eventContextExtractor,
-  collectCorrespondences,
-  getCorrespondencesFromEvent,
-  async (req, res) => {
-    try {
-      const { answer } = req.params;
-      const correspondence = req.correspondence;
-
-      correspondence.answer = answer;
-      await correspondence.save();
-      res.send(correspondence);
-    } catch (error) {
-      res.status(500).send(error.message);
-    }
-  }
-);
-
 router.get("/events/:event_id", async (req, res) => {
   const { event_id } = req.params;
   const event = await Event.findById(event_id);
@@ -91,8 +73,8 @@ router.delete("/events/:event_id", validateUser, async (req, res) => {
   )).filter(Boolean);
 
   await Promise.all(
-    correspondences.map(({ _id, event_id, email }) =>
-      User.findOne({ email }).then(async user => {
+    correspondences.map(({ _id, event_id, user_id }) =>
+      User.findById(user_id).then(async user => {
         await user.removeCorrespondence(_id);
         await user.removeEvent(event_id);
 
@@ -104,7 +86,7 @@ router.delete("/events/:event_id", validateUser, async (req, res) => {
     res.status(404).send();
   }
   try {
-    if (event.admins.includes(req.user.email)) {
+    if (event.admins.includes(req.user._id)) {
       await event.remove();
       return res.send(event);
     } else {
@@ -120,20 +102,20 @@ router.delete("/events/:event_id", validateUser, async (req, res) => {
 // put all the data on context object than if wrrors happen u can log the context and its esasier to debug
 router.post("/events", validateUser, async (req, res) => {
   const user = req.user;
-  const { email } = user;
+  const { _id: user_id } = user;
   const _id = new ObjectId();
   try {
     const correspondence = new Correspondence({
       event_id: _id,
       status: "replied",
       answer: "confirm",
-      email,
-      trigger_email: email
+      user_id,
+      trigger_user_id: user_id
     });
     const event = new Event({
       ...req.body,
       correspondences: [correspondence._id],
-      admins: [email],
+      admins: [user_id],
       _id
     });
     // user.correspondences = user.correspondence.concat(correspondence)
