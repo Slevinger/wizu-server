@@ -3,7 +3,7 @@ const Correspondence = require("../models/CorrespondenceModel");
 const User = require("../models/UserModel");
 const Event = require("../models/EventModel");
 const validateUser = require("../middleware/validateUser");
-const eventContextExtractor = require("../middleware/contextExtractors/eventContextExtractor");
+const contextExtractor = require("../middleware/contextExtractor");
 const {
   collectCorrespondences
 } = require("../middleware/collectCorrespondences");
@@ -50,7 +50,7 @@ router.patch(
 router.patch(
   "/correspondences/events/:event_id/:answer",
   validateUser,
-  eventContextExtractor,
+  contextExtractor,
   collectCorrespondences,
   getCorrespondencesFromEvent,
   async (req, res) => {

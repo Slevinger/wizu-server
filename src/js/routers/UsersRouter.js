@@ -1,17 +1,12 @@
 const express = require("express");
 const User = require("../models/UserModel");
-const Event = require("../models/EventModel");
-const Correspondence = require("../models/CorrespondenceModel");
 const { format } = require("util");
-const ObjectId = require("mongodb").ObjectId;
 const validateUser = require("../middleware/validateUser");
 const {
   collectCorrespondences,
   getCorrespondencesByUser
 } = require("../middleware/collectCorrespondences");
 const { setProfileImage, bucket } = require("../utils/fireBase");
-const passport = require("passport");
-const cors = require("cors");
 
 const multer = require("../utils/Multer");
 
@@ -19,8 +14,12 @@ const router = new express.Router();
 
 // get users
 router.get("/users/me", validateUser, collectCorrespondences, (req, res) => {
-  const data = { ...req.user.toJSON(), correspondences: req.correspondences };
-  res.send({ data: data });
+  try {
+    const data = { ...req.user.toJSON(), correspondences: req.correspondences };
+    return res.send({ data });
+  } catch (err) {
+    console.log(err);
+  }
 });
 router.get("/users/:user_id", validateUser, async (req, res) => {
   const user = await User.findById(req.params.user_id, {
@@ -30,37 +29,7 @@ router.get("/users/:user_id", validateUser, async (req, res) => {
     profileImage: 1,
     friends: 1
   });
-  res.send({ data: user.toJSON() });
-});
-
-router.post("/users/invite/:phone", validateUser, async (req, res) => {
-  const { phone } = req.params;
-  const triggerUser = req.user;
-  const user = await User.findOne({ phone });
-  if (!user) {
-    res.status(404).send({
-      error: `user ${username} or srcUser ${srcUser}, does not exists`
-    });
-  }
-
-  try {
-    const correspondence = new Correspondence({
-      status: "sent",
-      correspondence_type: "FRIEND_REQ",
-      user_id: user._id,
-      trigger_user_id: triggerUser._id
-    });
-
-    user.correspondences.push(correspondence._id);
-    triggerUser.correspondences.push(correspondence._id);
-
-    await correspondence.save();
-
-    await Promise.all([user.save(), triggerUser.save()]);
-    res.status(201).send(correspondence.toJSON());
-  } catch (error) {
-    res.status(500).send(error);
-  }
+  return res.send({ data: user.toJSON() });
 });
 
 router.post(
@@ -87,41 +56,7 @@ router.post(
   }
 );
 
-// get user events by email
-router.get(
-  "/users/me/events",
-  validateUser,
-  collectCorrespondences,
-  async (req, res) => {
-    const user = req.user;
-    const correspondences = req.correspondences;
-    const events = Object.keys(correspondences).reduce(
-      (acc, correspondenceId) => {
-        console.log(correspondences[correspondenceId].answer);
-        return {
-          ...acc,
-          [correspondences[correspondenceId].answer]: [
-            ...(acc[correspondences[correspondenceId].answer] || []),
-            correspondences[correspondenceId].event_id
-          ]
-        };
-      },
-      {}
-    );
-
-    for (let key in events) {
-      events[key] = await Promise.all(
-        events[key].map(event_id => {
-          return Event.findById(event_id);
-        })
-      );
-    }
-
-    console.log(events);
-
-    res.send({ data: events });
-  }
-);
+router.get("/users/suggestions", validateUser, async (req, res) => {});
 
 router.patch("/users/me", validateUser, async (req, res) => {
   const updates = Object.keys(req.body);
@@ -131,13 +66,13 @@ router.patch("/users/me", validateUser, async (req, res) => {
     allowedUpdates.includes(update)
   );
   if (!isValidUpdate) {
-    return res.status(400).send({ error: "Invalid updates" });
+    return res.status(400).send({ data: { message: "Invalid updates" } });
   }
   try {
     const user = req.user;
 
     if (!user) {
-      return res.status(404).send();
+      return res.status(404).send({ data: { message: "No such user" } });
     }
     updates.forEach(update => {
       user[update] = req.body[update];
@@ -145,7 +80,23 @@ router.patch("/users/me", validateUser, async (req, res) => {
     await user.save();
     res.send(user);
   } catch (err) {
-    res.status(409).send(err);
+    res.status(409).send({ data: { message: err.message || err } });
+  }
+});
+
+router.post("/users/get", validateUser, async (req, res) => {
+  const { phoneNumbers = [] } = req.context;
+  try {
+    const users = await User.find(
+      { phone: { $in: phoneNumbers } },
+      { username: 1, phone: 1, email: 1, profileImage: 1 }
+    );
+    console.log(users);
+    res.send({ data: users });
+  } catch (error) {
+    res
+      .status(405)
+      .send({ data: { message: "fail at user router get /users" } });
   }
 });
 
@@ -161,10 +112,10 @@ router.post("/users", async (req, res) => {
         res.status(201).send({ data: { user, token } });
       })
       .catch(error => {
-        res.status(400).send(error);
+        res.status(400).send({ data: { message: error || error.message } });
       });
   } catch ({ message }) {
-    res.status(500).send({ message });
+    res.status(500).send({ data: { message } });
   }
 });
 
@@ -178,7 +129,7 @@ router.post("/users/login", async (req, res) => {
     ret.correspondences = Object.values(correspondences);
     res.send({ data: { user: ret, token } });
   } catch ({ message }) {
-    res.status(401).send({ message });
+    res.status(401).send({ data: { message } });
   }
 });
 
@@ -192,7 +143,7 @@ router.post("/users/logout", validateUser, async (req, res) => {
     await user.save();
     res.send(user);
   } catch (err) {
-    res.status(401).send(err.message);
+    res.status(401).send({ data: { message: err || err.message } });
   }
 });
 

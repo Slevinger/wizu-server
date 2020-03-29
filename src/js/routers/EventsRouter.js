@@ -2,12 +2,7 @@ const express = require("express");
 const Event = require("../models/EventModel");
 const User = require("../models/UserModel");
 const validateUser = require("../middleware/validateUser");
-const eventContextExtractor = require("../middleware/contextExtractors/eventContextExtractor");
-const getCorrespondencesFromEvent = require("../middleware/getCorrespondencesFromEvent");
-const authenticateEvent = require("../middleware/authenticateEvent");
-const {
-  collectCorrespondences
-} = require("../middleware/collectCorrespondences");
+
 const Correspondence = require("../models/CorrespondenceModel");
 const router = new express.Router();
 const { setEventImage } = require("../utils/fireBase");
@@ -39,7 +34,7 @@ router.post(
         })
         // TODO: dont catch errors handle them in error handler middlware
         .catch(error => {
-          console.error(error);
+          res.status(500).send({ data: { message: error.message || error } });
         });
     }
   }
@@ -49,16 +44,17 @@ router.post(
 router.patch("/events/:event_id", validateUser, async (req, res) => {
   const { user } = req;
   const { event } = req.body;
-  await Event.findByIdAndUpdate(event._id, event);
+  const data = await Event.findByIdAndUpdate(event._id, event);
+  res.send({ data });
 });
 
 router.get("/events/:event_id", async (req, res) => {
   const { event_id } = req.params;
-  const event = await Event.findById(event_id);
+  const data = await Event.findById(event_id);
   if (!event) {
-    return res.status(404).send();
+    return res.status(404).send({ data: { message: "No such event" } });
   }
-  res.send(event);
+  res.send({ data });
 });
 
 router.delete("/events/:event_id", validateUser, async (req, res) => {
@@ -83,17 +79,17 @@ router.delete("/events/:event_id", validateUser, async (req, res) => {
     )
   );
   if (!event) {
-    res.status(404).send();
+    res.status(404).send({ data: { message: "No such event" } });
   }
   try {
     if (event.admins.includes(req.user._id)) {
       await event.remove();
       return res.send(event);
     } else {
-      res.status(403).send();
+      res.status(403).send({ data: { message: "You atr not authorized" } });
     }
   } catch (error) {
-    res.status(500).send(error);
+    res.status(500).send({ data: { message: error.message || error } });
   }
 });
 
@@ -127,10 +123,12 @@ router.post("/events", validateUser, async (req, res) => {
         $push: { correspondences: correspondence._id, events: event._id }
       }
     );
-    res.status(201).send(event);
+    res.status(201).send({ data: event });
   } catch (err) {
     console.log(err);
-    res.status(err.status || 400).send(err);
+    res
+      .status(err.status || 400)
+      .send({ data: { message: err.message || err } });
   }
 });
 

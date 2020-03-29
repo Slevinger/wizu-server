@@ -15,14 +15,13 @@ const validateUser = async function(req, res, next) {
       { password: 0 }
     );
     if (!user) {
-      return res.status(401).send({ error: "user not found" });
-      throw new Error();
+      return res.status(401).send({ data: { message: "user not found" } });
     }
     req.token = token;
     req.user = user;
     next();
   } catch (err) {
-    res.status(401).send({ error: "please authenticate" });
+    res.status(401).send({ data: { message: "please authenticate" } });
   }
 };
 

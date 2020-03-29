@@ -12,7 +12,7 @@ const getCorrespondencesFromEvent = async function(req, res, next) {
 
     next();
   } catch (err) {
-    res.status(401).send({ error: "please authenticate" });
+    res.status(401).send({ data: { message: "please authenticate" } });
   }
 };
 

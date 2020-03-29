@@ -8,8 +8,8 @@ module.exports = {
     if (!file) {
       throw errorStatusCode("No file was sent", 400);
     }
-    const { eventId } = req.context;
-    const event = Event.findById(eventId);
+    const { event_id } = req.context;
+    const event = Event.findById(event_id);
     setEventImage(event, file)
       .then(async url => {
         event.image_url = format(url);

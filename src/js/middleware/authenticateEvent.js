@@ -9,12 +9,12 @@ const authenticateEvent = async function(req, res, next) {
     const event = await Event.findOne({ _id: event_id, admins: user._id });
     if (!event) {
       // TODO: throw 404 user not found
-      throw new Error();
+      return res.status(404).send({ data: { message: `no event ` } });
     }
     req.event = event;
     next();
   } catch (err) {
-    res.status(404).send({ error: `no event ` });
+    res.status(404).send({ data: { message: `no event ` } });
   }
 };
 

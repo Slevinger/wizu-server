@@ -38,7 +38,7 @@ const collectCorrespondences = async function(req, res, next) {
     req.correspondences = await getCorrespondencesByUser(req.user);
     next();
   } catch (err) {
-    res.status(401).send({ error: "please authenticate" });
+    res.status(401).send({ data: { message: "please authenticate" } });
   }
 };
 

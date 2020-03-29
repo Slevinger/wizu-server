@@ -1,10 +1,10 @@
 const express = require("express");
 const cors = require("cors");
+require("./db/mongoose");
 
 const UsersRouter = require("./routers/UsersRouter");
 const EventsRouter = require("./routers/EventsRouter");
 const CorrespondencesRouter = require("./routers/CorrespondencesRouter");
-require("./db/mongoose");
 
 const app = express();
 const port = process.env.PORT || 3000;

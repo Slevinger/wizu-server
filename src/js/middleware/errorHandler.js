@@ -30,13 +30,13 @@ module.exports = (err, req, res, next) => {
       context: req.ctx
     });
 
-    res.status(statusCode).json(err);
+    res.status(statusCode).json({ data: { message: err } });
   } catch (error) {
     logger.error({
       message: "An error occurred in errorHandler",
       error,
       context: req.ctx
     });
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ data: { message: "Internal Server Error" } });
   }
 };
