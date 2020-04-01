@@ -1,5 +1,6 @@
 const express = require("express");
 const User = require("../models/UserModel");
+const Event = require("../models/EventModel");
 const { format } = require("util");
 const validateUser = require("../middleware/validateUser");
 const {
@@ -21,6 +22,40 @@ router.get("/users/me", validateUser, collectCorrespondences, (req, res) => {
     console.log(err);
   }
 });
+router.get(
+  "/users/me/events",
+  validateUser,
+  collectCorrespondences,
+  async (req, res) => {
+    const user = req.user;
+    const correspondences = req.correspondences;
+    const events = Object.keys(correspondences).reduce(
+      (acc, correspondenceId) => {
+        console.log(correspondences[correspondenceId].answer);
+        return {
+          ...acc,
+          [correspondences[correspondenceId].answer]: [
+            ...(acc[correspondences[correspondenceId].answer] || []),
+            correspondences[correspondenceId].event_id
+          ]
+        };
+      },
+      {}
+    );
+
+    for (let key in events) {
+      events[key] = await Promise.all(
+        events[key].map(event_id => {
+          return Event.findById(event_id);
+        })
+      );
+    }
+
+    console.log(events);
+
+    res.send({ data: events });
+  }
+);
 router.get("/users/:user_id", validateUser, async (req, res) => {
   const user = await User.findById(req.params.user_id, {
     email: 1,
