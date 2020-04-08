@@ -62,8 +62,15 @@ const uploadImageToStorage = (file, dest, name) => {
 module.exports = {
   bucket,
   firebaseAdmin,
-  setProfileImage: (user, file) =>
-    uploadImageToStorage(file, `users/${user.id}`, `avatar__${user.__v}`),
+  setProfileImage: (user, file) => {
+    return uploadImageToStorage(
+      file,
+      `users/${user.id}`,
+      `avatar__${user.__v + 1}`
+    );
+  },
+  setUserCoverPhoto: (user, file) =>
+    uploadImageToStorage(file, `users/${user.id}`, `cover__${user.__v + 1}`),
   setEventImage: (event, file) =>
     uploadImageToStorage(
       file,

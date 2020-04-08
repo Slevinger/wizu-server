@@ -7,7 +7,7 @@ const {
   collectCorrespondences,
   getCorrespondencesByUser
 } = require("../middleware/collectCorrespondences");
-const { setProfileImage, bucket } = require("../utils/fireBase");
+const { setProfileImage, setUserCoverPhoto } = require("../utils/fireBase");
 
 const multer = require("../utils/Multer");
 
@@ -16,7 +16,11 @@ const router = new express.Router();
 // get users
 router.get("/users/me", validateUser, collectCorrespondences, (req, res) => {
   try {
-    const data = { ...req.user.toJSON(), correspondences: req.correspondences };
+    const data = {
+      ...req.user.toJSON(),
+      friends: req.friends,
+      correspondences: req.correspondences
+    };
     return res.send({ data });
   } catch (err) {
     console.log(err);
@@ -62,6 +66,7 @@ router.get("/users/:user_id", validateUser, async (req, res) => {
     username: 1,
     phone: 1,
     profileImage: 1,
+    coverPhoto: 1,
     friends: 1
   });
   return res.send({ data: user.toJSON() });
@@ -91,6 +96,29 @@ router.post(
   }
 );
 
+router.post(
+  "/users/me/cover-photo",
+  validateUser,
+  multer.single("file"),
+  async (req, res) => {
+    console.log("Set CoverPhoto image");
+
+    let file = req.file;
+    if (file) {
+      setUserCoverPhoto(req.user, file)
+        .then(async url => {
+          const user = req.user;
+          user.coverPhoto = format(url);
+          console.log(`${format(url)}?alt=media`);
+          await user.save();
+          res.status(200).send({ data: format(url) });
+        })
+        .catch(error => {
+          console.error(error);
+        });
+    }
+  }
+);
 router.get("/users/suggestions", validateUser, async (req, res) => {});
 
 router.patch("/users/me", validateUser, async (req, res) => {
@@ -163,8 +191,8 @@ router.post("/users/login", async (req, res) => {
     console.log(correspondences);
     ret.correspondences = Object.values(correspondences);
     res.send({ data: { user: ret, token } });
-  } catch ({ message }) {
-    res.status(401).send({ data: { message } });
+  } catch (error) {
+    res.status(401).send({ data: { message: error.message || error } });
   }
 });
 

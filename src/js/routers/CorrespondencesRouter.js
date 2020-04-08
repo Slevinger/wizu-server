@@ -68,6 +68,41 @@ router.patch(
 );
 
 router.post(
+  "/correspondences/users/invite/:phone",
+  validateUser,
+  contextExtractor,
+  collectCorrespondences,
+  async (req, res) => {
+    const { phone } = req.context;
+    const otherUser = await User.findOne({ phone });
+    const userData = otherUser
+      ? { user_id: otherUser._id.toString() }
+      : { phone };
+    const user = req.user;
+    console.log(user);
+    // if (user.correspondences)
+    try {
+      const correspondence = new Correspondence({
+        status: "sent",
+        correspondence_type: "FRIEND_REQ",
+        ...userData,
+        trigger_user_id: user._id
+      });
+      await User.findByIdAndUpdate(user._id, {
+        $push: { correspondences: correspondence._id }
+      });
+      otherUser &&
+        (await User.findByIdAndUpdate(otherUser._id, {
+          $push: { correspondences: correspondence._id }
+        }));
+      await correspondence.save();
+      res.status(201).send(correspondence);
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
+router.post(
   "/correspondences/:event_id/add/:user_id",
   validateUser,
   collectCorrespondences,

@@ -47,6 +47,9 @@ const UserSchema = new Schema({
   profileImage: {
     type: String
   },
+  coverPhoto: {
+    type: String
+  },
   tokens: [
     {
       token: {
@@ -75,6 +78,9 @@ UserSchema.pre("save", async function(next) {
   const user = this;
   if (user.isModified("password")) {
     user.password = await bcrypt.hash(user.password, 8);
+  }
+  if (user.isModified("profileImage") || user.isModified("coverPhoto")) {
+    user.__v += 1;
   }
   next();
 });

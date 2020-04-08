@@ -19,6 +19,19 @@ const validateUser = async function(req, res, next) {
     }
     req.token = token;
     req.user = user;
+    const friends = await User.find(
+      { _id: { $in: user.friends } },
+      {
+        email: 1,
+        username: 1,
+        phone: 1,
+        profileImage: 1,
+        coverPhoto: 1,
+        friends: 1
+      }
+    );
+    req.friends = friends;
+
     next();
   } catch (err) {
     res.status(401).send({ data: { message: "please authenticate" } });
